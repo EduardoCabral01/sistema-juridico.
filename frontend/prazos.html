@@ -43,6 +43,7 @@
           <th>Data limite</th>
           <th>Processo</th>
           <th>Status</th>
+          <th>Notificar</th>
         </tr>
       </thead>
       <tbody id="corpo-prazos"></tbody>
@@ -81,6 +82,7 @@
             <td style="color:${atrasado ? '#c00' : '#333'}">${p.data_limite}</td>
             <td>${processo ? processo.numero : '-'}</td>
             <td>${p.concluido ? '✅ Concluído' : atrasado ? '⚠️ Atrasado' : '🕐 Pendente'}</td>
+            <td><button onclick="notificar(${p.id})" class="btn btn-primary" style="width:auto; padding:6px 12px; font-size:13px;">📧 Notificar</button></td>
           </tr>`;
       });
     }
@@ -118,6 +120,14 @@
     }
 
     carregarDados();
+    async function notificar(id) {
+  const res = await fetch(`/prazos/${id}/notificar`, { method: 'POST' });
+  if (res.ok) {
+    alert('Email enviado com sucesso!');
+  } else {
+    alert('Erro ao enviar email!');
+  }
+}
   </script>
 </body>
 </html>

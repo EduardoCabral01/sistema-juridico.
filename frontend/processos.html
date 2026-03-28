@@ -46,6 +46,7 @@
           <th>Vara</th>
           <th>Status</th>
           <th>Cliente</th>
+          <th>PDF</th>
         </tr>
       </thead>
       <tbody id="corpo-processos"></tbody>
@@ -76,13 +77,14 @@
       corpo.innerHTML = '';
       processos.forEach(p => {
         const cliente = clientes.find(c => c.id === p.cliente_id);
-        corpo.innerHTML += `
+     corpo.innerHTML += `
           <tr>
             <td>${p.numero}</td>
             <td>${p.descricao || '-'}</td>
             <td>${p.vara || '-'}</td>
             <td>${p.status}</td>
             <td>${cliente ? cliente.nome : '-'}</td>
+            <td><a href="/processos/${p.id}/pdf" class="btn btn-primary" style="width:auto; padding:6px 12px; font-size:13px;">📄 PDF</a></td>
           </tr>`;
       });
     }

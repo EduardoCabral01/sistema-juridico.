@@ -6,6 +6,9 @@ from app.auth import hash_senha, verificar_senha, criar_token
 from pydantic import BaseModel
 from typing import Optional
 from datetime import date
+from fastapi.responses import StreamingResponse
+from app.pdf import gerar_pdf_processo
+from app.email import enviar_email_prazo
 
 router = APIRouter()
 
@@ -120,8 +123,40 @@ def criar_prazo(prazo: PrazoCreate, db: Session = Depends(get_db)):
 @router.get("/prazos")
 def listar_prazos(db: Session = Depends(get_db)):
     return db.query(Prazo).all()
+@router.get("/processos/{id}/pdf")
+def baixar_pdf(id: int, db: Session = Depends(get_db)):
+    processo = db.query(Processo).filter(Processo.id == id).first()
+    if not processo:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    cliente = db.query(Cliente).filter(Cliente.id == processo.cliente_id).first()
+    prazos = db.query(Prazo).filter(Prazo.processo_id == id).all()
+    
+    buffer = gerar_pdf_processo(processo, cliente, prazos)
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=processo_{id}.pdf"}
+    )
 
 @router.get("/prazos/proximos")
 def prazos_proximos(db: Session = Depends(get_db)):
     hoje = date.today()
     return db.query(Prazo).filter(Prazo.data_limite >= hoje, Prazo.concluido == 0).order_by(Prazo.data_limite).all()
+@router.post("/prazos/{id}/notificar")
+async def notificar_prazo(id: int, db: Session = Depends(get_db)):
+    prazo = db.query(Prazo).filter(Prazo.id == id).first()
+    if not prazo:
+        raise HTTPException(status_code=404, detail="Prazo não encontrado")
+    
+    processo = db.query(Processo).filter(Processo.id == prazo.processo_id).first()
+    cliente = db.query(Cliente).filter(Cliente.id == processo.cliente_id).first()
+    
+    await enviar_email_prazo(
+        destinatario=cliente.email,
+        descricao=prazo.descricao,
+        data_limite=str(prazo.data_limite)
+    )
+    
+    return {"mensagem": f"Email enviado para {cliente.email}!"}
